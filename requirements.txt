@@ -1,0 +1,13 @@
+faster-whisper
+sounddevice
+webrtcvad
+keyboard
+pynput
+pyperclip
+numpy
+customtkinter
+pystray
+pillow
+ollama
+pygetwindow
+pyinstaller

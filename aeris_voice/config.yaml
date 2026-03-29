@@ -1,0 +1,29 @@
+# AetherVoice Configuration
+# -------------------------
+
+# STT Settings (Whisper)
+stt:
+  model_size: small       # now using 'small' for high-accuracy local use
+  compute_type: int8     # int8, float16 (if GPU available)
+  language: en           # en, hi, or auto
+
+# VAD Settings (Silero)
+vad:
+  threshold: 0.5         # 0.0 to 1.0 (sensitivity)
+  hangover_time: 0.8     # seconds to wait before committing
+  min_speech_len: 0.5    # seconds to ignore noise
+
+# AI Polishing Settings
+ai:
+  enabled: false          # disabled to ensure unlimited/free local use
+  provider: huggingface   # ollama, huggingface, groq
+  model: mistralai/Mistral-7B-Instruct-v0.2 # HF/Groq model ID
+  api_key: "PASTE_YOUR_KEY_HERE" # HF Token or Groq API Key
+  timeout: 3.0           # seconds before fallback to raw
+  async_overwrite: true  # type raw first, then fix with AI
+  log_level: INFO        # DEBUG, INFO, WARNING, ERROR
+
+# System Settings
+system:
+  hotkey: ctrl+windows      # ctrl+windows, ctrl+shift+a, etc.
+  typing_delay: 0.002    # seconds between characters

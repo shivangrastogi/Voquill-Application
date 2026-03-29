@@ -1,0 +1,36 @@
+# Environments
+venv/
+.venv/
+env/
+ENV/
+bin/
+lib/
+share/
+Include/
+Scripts/
+pyvenv.cfg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Project Specific
+logs/
+*.log
+models/
+aeris_voice/venv/
+aeris_voice/__pycache__/
+aeris_voice/models/
+debug_error.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+.gemini/

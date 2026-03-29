@@ -1,0 +1,14 @@
+faster-whisper
+sounddevice
+numpy
+pynput
+keyboard
+ollama
+torch
+pygetwindow
+PyQt5
+pystray
+pillow
+torchaudio
+huggingface_hub
+openai
