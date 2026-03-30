@@ -75,11 +75,15 @@ class VoquillApp(QObject):
         # 4. State
         self.is_listening = False
         self.app_context = "Unknown"
+        self.stop_event = threading.Event()
+        self.stream_thread = None
+        self.transcribe_thread = None
 
     def start(self):
         """Starts the application."""
         # Boot directly to dashboard (Auth removed as requested)
         self.show_dashboard()
+        self.window.show_idle_bar()
         self.tray.start()
         self.hotkey.start()
         print("Voquill is running (Performance Mode)...")
@@ -135,27 +139,35 @@ class VoquillApp(QObject):
     @pyqtSlot()
     def start_dictation(self):
         self.is_listening = True
+        self.stop_event.clear()
         
         # Capture active window context
         try:
             active_window = gw.getActiveWindow()
             self.app_context = active_window.title if active_window else "Desktop"
-        except:
+        except Exception:
             self.app_context = "Unknown"
         
         self.window.show()
+        self.window.expand()
+        self.window.set_state("listening")
         self.session.set_state(SessionState.LISTENING)
         self.audio_buffer.clear()
+        self.audio_manager.clear_queue()
         self.audio_manager.start_streaming()
         self.window.update_status("Listening...")
-        threading.Thread(target=self._stream_processing_loop, daemon=True).start()
-        threading.Thread(target=self._transcription_loop, daemon=True).start()
+        self.stream_thread = threading.Thread(target=self._stream_processing_loop, daemon=True)
+        self.transcribe_thread = threading.Thread(target=self._transcription_loop, daemon=True)
+        self.stream_thread.start()
+        self.transcribe_thread.start()
 
     @pyqtSlot()
     def stop_dictation(self):
         self.is_listening = False
+        self.stop_event.set()
         self.audio_manager.stop_streaming()
         self.session.set_state(SessionState.PROCESSING)
+        self.window.set_state("processing")
         self.window.update_status("Processing AI...")
         threading.Thread(target=self._finalize_dictation, daemon=True).start()
 
@@ -164,7 +176,7 @@ class VoquillApp(QObject):
         print("Stream Processing Loop Started")
         chunks_received = 0
         chunks_accepted = 0
-        while self.is_listening:
+        while self.is_listening and not self.stop_event.is_set():
             chunk = self.audio_manager.get_chunk()
             if chunk is not None:
                 chunks_received += 1
@@ -188,7 +200,7 @@ class VoquillApp(QObject):
         self.previous_full_transcript = ""
         self.last_speech_time = time.time()
         
-        while self.is_listening:
+        while self.is_listening and not self.stop_event.is_set():
             current_time = time.time()
             if current_time - last_transcription_time > 0.7:
                 audio_data = self.audio_buffer.get_last_n_seconds(2.0)
@@ -246,8 +258,9 @@ class VoquillApp(QObject):
             audio_data = self.audio_buffer.get_all()
             if len(audio_data) < 1600:
                 self.window.update_status("Empty session")
+                self.window.set_state("inactive")
                 time.sleep(0.5)
-                self.window.hide()
+                self.window.show_idle_bar()
                 return
 
             # Final transcription
@@ -281,14 +294,16 @@ class VoquillApp(QObject):
                 self.db.add_history(processed_text, processed_text, self.session.get_mode(), self.app_context)
             
             self.window.update_status("Done!")
+            self.window.set_state("inactive")
             time.sleep(0.5)
-            self.window.hide()
+            self.window.show_idle_bar()
 
         except Exception as e:
             print(f"Finalization Error: {e}")
             self.window.update_status("Error!")
+            self.window.set_state("inactive")
             time.sleep(1)
-            self.window.hide()
+            self.window.show_idle_bar()
 
     def _run_async_cleanup(self, text):
         """Asynchronously polishes the full transcript and saves to history."""
